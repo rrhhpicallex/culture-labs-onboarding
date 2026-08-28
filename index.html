@@ -313,9 +313,9 @@ table.pcx-table td{padding:10px 12px;background:var(--bg-alt);color:var(--plum-7
   position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);
   background:var(--plum-900);color:#fff;padding:13px 22px;border-radius:18px;font-weight:700;font-size:13.5px;
   opacity:0;pointer-events:none;transition:all .3s ease;z-index:300;box-shadow:var(--shadow-soft);
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:min(92vw,420px);
 }
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
 
 @media(max-width:900px){
   #sidebar{position:fixed;left:-300px;transition:left .25s ease;z-index:150;box-shadow:var(--shadow-soft);}
@@ -616,64 +616,64 @@ const AREA_COLORS = {
 
 const ORG = [
   {area:'leadership', label:'Liderazgo', people:[
-    {name:'Carlos Fonseca', role:'COO-Chief Operating Officer', leader:true, country:'us'},
-    {name:'Marcelo Sosa', role:'CEO - Chief Executive Officer', leader:true},
+    {name:'Carlos Fonseca', role:'COO-Chief Operating Officer', leader:true, country:'us', slack:'UCCK61S2X'},
+    {name:'Marcelo Sosa', role:'CEO - Chief Executive Officer', leader:true, slack:'U04EA2034'},
   ]},
   {area:'hr', label:'Recursos Humanos', people:[
-    {name:'Georgina Zunino', role:'HRO - Human Resources Officer', leader:true},
-    {name:'Zoé Natera', role:'People Experience & Performance', leader:false},
+    {name:'Georgina Zunino', role:'HRO - Human Resources Officer', leader:true, slack:'U018S9LBF47'},
+    {name:'Zoé Natera', role:'People Experience & Performance', leader:false, slack:'U04URJBBZ8F'},
     {name:'Lorena Gianoglio', role:'VP Culture', leader:false},
   ]},
   {area:'cx', label:'Customer Experience', people:[
-    {name:'Melisa Díaz', role:'Customer Experience Manager', leader:true},
-    {name:'Antonella Cachambú', role:'Customer Success & Delivery Lead', leader:false},
-    {name:'Augusto Kohler', role:'KAS -Key Account Support', leader:false},
-    {name:'Delfina Jorge', role:'Customer Support Lead', leader:false, mid:true},
-    {name:'Fernando Gregoris', role:'KAM - Key Account Manager', leader:false},
-    {name:'Milagros Delfino', role:'KAS -Key Account Support', leader:false},
-    {name:'Ricardo Franco', role:'BDE - Business Developer Executive', leader:false, country:'co'},
+    {name:'Melisa Díaz', role:'Customer Experience Manager', leader:true, slack:'U06B6FC9G6B'},
+    {name:'Antonella Cachambú', role:'Customer Success & Delivery Lead', leader:false, slack:'U056RQS4BTM'},
+    {name:'Augusto Kohler', role:'KAS -Key Account Support', leader:false, slack:'U08LK7C6WQ1'},
+    {name:'Delfina Jorge', role:'Customer Support Lead', leader:false, mid:true, slack:'U02SQ5JR58B'},
+    {name:'Fernando Gregoris', role:'KAM - Key Account Manager', leader:false, slack:'U2KBDC6FK'},
+    {name:'Milagros Delfino', role:'KAS -Key Account Support', leader:false, slack:'U07784X8ESJ'},
+    {name:'Ricardo Franco', role:'BDE - Business Developer Executive', leader:false, country:'co', slack:'U083XDQTC56'},
   ]},
   {area:'dev', label:'Desarrollo', people:[
-    {name:'Diego Álvarez', role:'CTO', leader:true},
-    {name:'Agustín Serra', role:'IP Telephony Software Development Specialist', leader:false},
-    {name:'Bruno Alaminos', role:'Developer Backend', leader:false},
-    {name:'Camila Calcagno', role:'Product Manager', leader:false, mid:true},
-    {name:'Cristián Álvarez', role:'Developer Backend', leader:false},
-    {name:'Damián Morales', role:'VoIP Operations Specialist', leader:false},
-    {name:'Facundo Yobstraibizer', role:'Developer', leader:false},
-    {name:'Federico Franco', role:'Developer Backend', leader:false},
-    {name:'Francisco García', role:'Developer Backend', leader:false, country:'co'},
-    {name:'Franco Lorio', role:'Developer', leader:false},
-    {name:'Germán Álvarez', role:'Delivery Manager', leader:false, mid:true},
-    {name:'Juan Antuña', role:'Developer', leader:false},
-    {name:'Juan González', role:'Lead Telephony', leader:false, mid:true, country:'co'},
-    {name:'Lucas Salzotto', role:'Developer', leader:false},
-    {name:'Matías Gómez', role:'Developer', leader:false},
-    {name:'Tobías Irastorza', role:'Developer', leader:false},
-    {name:'Valentín Cardozo', role:'Product Analyst', leader:false},
+    {name:'Diego Álvarez', role:'CTO', leader:true, slack:'U2CKGQUKV'},
+    {name:'Agustín Serra', role:'IP Telephony Software Development Specialist', leader:false, slack:'U08H1J7FW75'},
+    {name:'Bruno Alaminos', role:'Developer Backend', leader:false, slack:'UCDRHJE9M'},
+    {name:'Camila Calcagno', role:'Product Manager', leader:false, mid:true, slack:'U09CWS7DMPF'},
+    {name:'Cristián Álvarez', role:'Developer Backend', leader:false, slack:'U04E9E08A'},
+    {name:'Damián Morales', role:'VoIP Operations Specialist', leader:false, slack:'UCBCTM72M'},
+    {name:'Facundo Yobstraibizer', role:'Developer', leader:false, slack:'U05F82DJ4J1'},
+    {name:'Federico Franco', role:'Developer Backend', leader:false, slack:'UCDP4C1CP'},
+    {name:'Francisco García', role:'Developer Backend', leader:false, country:'co', slack:'U01DX7PLG90'},
+    {name:'Franco Lorio', role:'Developer', leader:false, slack:'U01JLASEE07'},
+    {name:'Germán Álvarez', role:'Delivery Manager', leader:false, mid:true, slack:'U01CPP0KQTB'},
+    {name:'Juan Antuña', role:'Developer', leader:false, slack:'U080E21UDPW'},
+    {name:'Juan González', role:'Lead Telephony', leader:false, mid:true, country:'co', slack:'UC9CW236C'},
+    {name:'Lucas Salzotto', role:'Developer', leader:false, slack:'U07CURQKF7T'},
+    {name:'Matías Gómez', role:'Developer', leader:false, slack:'U02H3FYFRSM'},
+    {name:'Tobías Irastorza', role:'Developer', leader:false, slack:'U0314FC3P5H'},
+    {name:'Valentín Cardozo', role:'Product Analyst', leader:false, slack:'U01KMCNTJ1H'},
   ]},
   {area:'c2r', label:'C2R', people:[
-    {name:'Natalia Maffini', role:'VP - C2R', leader:true},
-    {name:'Agustina Navazzotti', role:'Paid Media Buyer', leader:false},
-    {name:'Franco Muñiz', role:'Graphics Design', leader:false},
-    {name:'Lucía González', role:'Paid Media Buyer', leader:false},
-    {name:'Mateo Formia', role:'Paid Media Buyer', leader:false},
-    {name:'Mauro Herrera', role:'Account Manager / Digital Marketing Sale', leader:false, mid:true},
-    {name:'Nicolás Palazesi', role:'Account Manager', leader:false, mid:true},
-    {name:'Victoria Pérez', role:'Paid Media Buyer', leader:false},
+    {name:'Natalia Maffini', role:'VP - C2R', leader:true, slack:'UCE1ZQ28N'},
+    {name:'Agustina Navazzotti', role:'Paid Media Buyer', leader:false, slack:'U03RY0JK5V2'},
+    {name:'Franco Muñiz', role:'Graphics Design', leader:false, slack:'U03FTCH3N1G'},
+    {name:'Lucía González', role:'Paid Media Buyer', leader:false, slack:'U083MFGQKK5'},
+    {name:'Mateo Formia', role:'Paid Media Buyer', leader:false, slack:'U07693JKEFP'},
+    {name:'Mauro Herrera', role:'Account Manager / Digital Marketing Sale', leader:false, mid:true, slack:'U02DCBY2GHF'},
+    {name:'Nicolás Palazesi', role:'Account Manager', leader:false, mid:true, slack:'U018W2FLAKA'},
+    {name:'Victoria Pérez', role:'Paid Media Buyer', leader:false, slack:'UCCFEKNDA'},
   ]},
   {area:'adm', label:'Administración y Finanzas', people:[
-    {name:'Marcelo Sosa', role:'CEO - Chief Executive Officer', leader:true},
-    {name:'Josefina Amin', role:'AA-Accounting Analyst', leader:false},
-    {name:'Lucia Robledo', role:'Finance Operations Assistant', leader:false},
+    {name:'Marcelo Sosa', role:'CEO - Chief Executive Officer', leader:true, slack:'U04EA2034'},
+    {name:'Josefina Amin', role:'AA-Accounting Analyst', leader:false, slack:'U0337D6F83D'},
+    {name:'Lucia Robledo', role:'Finance Operations Assistant', leader:false, slack:'U05QFRJE4G7'},
     {name:'Elizabeth Arcila', role:'Legal Officer', leader:false, country:'co'},
     {name:'Fernanda Hernández', role:'Finance Department', leader:false, country:'us'},
   ]},
   {area:'legal', label:'Legales', people:[
-    {name:'Alejandra Gregoris', role:'Legal Officer', leader:false},
+    {name:'Alejandra Gregoris', role:'Legal Officer', leader:false, slack:'U025Q8FHRME'},
   ]},
   {area:'arts', label:'Artes', people:[
-    {name:'Gonzalo Sosa', role:'Visual Arts', leader:false},
+    {name:'Gonzalo Sosa', role:'Visual Arts', leader:false, slack:'U01V1Q5S61G'},
   ]},
 ];
 
@@ -873,6 +873,8 @@ function toggleBenefit(key){
 const SUPABASE_URL = 'https://qzcdwtdmcpcakebfkwkm.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6Y2R3dGRtY3BjYWtlYmZrd2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MjgwNTksImV4cCI6MjA5MTQwNDA1OX0.i3UEPzJxtBTwtzJ4bqeUgf_nUBekXxz3pONR5sJp77U';
 const SUPABASE_AI_DIAGNOSTICS_TABLE = 'ai_diagnostics';
+const SUPABASE_PROFILES_TABLE = 'onboarding_profiles';
+const SUPABASE_QUIZ_ATTEMPTS_TABLE = 'quiz_attempts';
 const AI_DIAGNOSTIC_QUESTIONS = [
   {id:'q1', title:'Integración en la rutina diaria', options:[
     'Uso IA de forma puntual para dudas simples o para tirar una primera idea.',
@@ -1012,6 +1014,7 @@ function submitAiDiagnostic(){
 
   const payload = {
     user_id: state.name || null,
+    device_id: getDeviceId(),
     score_n: d.score,
     n_level: d.level,
     profile_label: d.profileLabel,
@@ -1044,6 +1047,7 @@ async function handleSaveToSupabase(payload){
         'apikey': SUPABASE_ANON_KEY,
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json',
+        'Content-Profile': 'public',
         'Prefer': 'return=minimal',
       },
       body: JSON.stringify(payload),
@@ -1269,7 +1273,7 @@ function submitExam(){
     answers: examState.answers,
   });
   persist();
-  // syncAttemptToSupabase(id, state.examAttempts[id][state.examAttempts[id].length-1]); // pendiente de conectar
+  syncAttemptToSupabase(id, state.examAttempts[id][state.examAttempts[id].length-1]);
 
   if(allCorrect){
     if(!state.quizPassed[id]) state.quizPassed[id] = {};
@@ -1294,11 +1298,37 @@ function finishExam(){
   updateContinueReady(id);
 }
 
-/* Stub listo para cuando conectemos Supabase:
-function syncAttemptToSupabase(moduleId, attempt){
-  // fetch a Supabase con moduleId + attempt (nombre, score, respuestas, timestamp)
+async function syncAttemptToSupabase(moduleId, attempt){
+  try{
+    const payload = {
+      device_id: getDeviceId(),
+      name: attempt.name,
+      module_id: moduleId,
+      attempt_number: (state.examAttempts[moduleId]||[]).length,
+      correct_count: attempt.correctCount,
+      total: attempt.total,
+      all_correct: attempt.allCorrect,
+      answers: attempt.answers,
+      created_at: attempt.timestamp,
+    };
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_QUIZ_ATTEMPTS_TABLE}`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Content-Profile': 'public',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify(payload),
+    });
+    if(!res.ok){
+      console.error('[quiz_attempts] Error al guardar en Supabase:', res.status, await res.text());
+    }
+  }catch(err){
+    console.error('[quiz_attempts] Fallo de red al guardar en Supabase:', err);
+  }
 }
-*/
 
 /* =========================================================
    MÓDULOS — el motor de contenido
@@ -1343,7 +1373,7 @@ function orgChartHTML(){
           const country = p.country || 'ar';
           const flag = COUNTRY_FLAGS[country];
           const tag = p.leader ? ' <span style="opacity:.55">· líder</span>' : (p.mid ? ' <span style="opacity:.55">· mando medio</span>' : '');
-          return `<div class="person-chip" onclick="showPerson('${nameEsc}','${g.area}','${roleEsc}',${!!p.leader},${!!p.mid},'${country}')">
+          return `<div class="person-chip" onclick="showPerson('${nameEsc}','${g.area}','${roleEsc}',${!!p.leader},${!!p.mid},'${country}','${p.slack||''}')">
             <span class="person-avatar-dot" style="background:${a.color}">${initials}</span>
             <span>${p.name}<span class="flag-badge">${flag}</span>${tag}</span>
           </div>`;
@@ -1377,7 +1407,7 @@ function normName(s){
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 }
 
-function showPerson(name, areaKey, role, isLeader, isMid, country){
+function showPerson(name, areaKey, role, isLeader, isMid, country, slackId){
   const a = AREA_COLORS[areaKey];
   const nn = normName(name);
   const testi = TESTIMONIALS.find(t=>{
@@ -1388,8 +1418,12 @@ function showPerson(name, areaKey, role, isLeader, isMid, country){
   const countryTxt = COUNTRY_NAMES[country] || 'Argentina';
   let msg = `<b>${name}</b> · ${role} — ${a.name}${tierTxt}. ${COUNTRY_FLAGS[country]||'🇦🇷'} ${countryTxt}.`;
   if(testi){ msg += ` En sus palabras: "${testi.quote}"`; }
-  else { msg += ` Para arrancar una charla, escribile por Slack — es el canal para coordinación rápida.`; }
-  showToast('👋 '+msg, 7000);
+  if(slackId){
+    msg += `<br><a href="https://slack.com/app_redirect?channel=${slackId}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;background:#4A154B;color:#fff;font-weight:700;font-size:12.5px;padding:6px 12px;border-radius:20px;text-decoration:none;">💬 Contactar por Slack</a>`;
+  } else {
+    msg += ` Para arrancar una charla, escribile por Slack — es el canal para coordinación rápida.`;
+  }
+  showToast('👋 '+msg, 9000);
 }
 
 function channelsTableHTML(){
@@ -1490,7 +1524,7 @@ inicio: () => `
         <label class="mono" style="font-size:11px;font-weight:800;color:var(--plum-500);">TU ÁREA</label>
         <select class="name-input" style="margin-top:6px" onchange="state.area=this.value; persist();">
           <option value="">Elegí tu área</option>
-          ${Object.entries(AREA_COLORS).filter(([k])=>k!=='hr').map(([k,v])=>`<option value="${k}" ${state.area===k?'selected':''}>${v.name}</option>`).join('')}
+          ${Object.entries(AREA_COLORS).filter(([k])=>k!=='hr' && k!=='leadership').map(([k,v])=>`<option value="${k}" ${state.area===k?'selected':''}>${k==='adm'?'Administración':v.name}</option>`).join('')}
         </select>
       </div>
     </div>
@@ -1953,6 +1987,18 @@ cierre: () => `
    ESTADO / PERSISTENCIA
 ========================================================= */
 const STORAGE_KEY = 'pcx_onboarding_state_v1';
+const DEVICE_ID_KEY = 'pcx_device_id';
+function getDeviceId(){
+  let id = localStorage.getItem(DEVICE_ID_KEY);
+  if(!id){
+    id = (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
+      const r = Math.random()*16|0, v = c==='x' ? r : (r&0x3|0x8);
+      return v.toString(16);
+    }));
+    localStorage.setItem(DEVICE_ID_KEY, id);
+  }
+  return id;
+}
 let state = loadState();
 
 function loadState(){
@@ -1983,7 +2029,61 @@ function loadState(){
     avatar:{color:'#FF8FBF', accessories:{antena:false, goggles:false, badge:false, plant:false}}
   };
 }
-function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); updateSidebar(); }
+function persist(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  updateSidebar();
+  scheduleProfileSync();
+}
+
+let _profileSyncTimer = null;
+function scheduleProfileSync(){
+  clearTimeout(_profileSyncTimer);
+  _profileSyncTimer = setTimeout(syncProfileToSupabase, 900);
+}
+
+function buildProfilePayload(){
+  const doneCount = MODULES.filter(m=>state.completed[m.id]).length;
+  return {
+    device_id: getDeviceId(),
+    name: state.name || null,
+    area: state.area || null,
+    country: state.country || null,
+    start_date: state.startDate || null,
+    current_module: state.current || null,
+    completed: state.completed || {},
+    quiz_passed: state.quizPassed || {},
+    quiz_selections: state.quizSelections || {},
+    exam_attempts: state.examAttempts || {},
+    dia1_tasks: state.dia1Tasks || {},
+    avatar_config: state.avatar || {},
+    music_on: !!state.musicOn,
+    started_at: state.startedAt ? new Date(state.startedAt).toISOString() : null,
+    celebrated: !!state.celebrated,
+    progress_pct: Math.round((doneCount/MODULES.length)*100),
+    updated_at: new Date().toISOString(),
+  };
+}
+
+async function syncProfileToSupabase(){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_PROFILES_TABLE}?on_conflict=device_id`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Content-Profile': 'public',
+        'Prefer': 'resolution=merge-duplicates,return=minimal',
+      },
+      body: JSON.stringify(buildProfilePayload()),
+    });
+    if(!res.ok){
+      console.error('[onboarding_profiles] Error al guardar en Supabase:', res.status, await res.text());
+    }
+  }catch(err){
+    console.error('[onboarding_profiles] Fallo de red al guardar en Supabase:', err);
+  }
+}
 
 function isUnlocked(idx){
   if(idx===0) return true;
@@ -2077,6 +2177,7 @@ function updateSidebar(){
   if(pct===100 && !state.celebrated){
     state.celebrated = true;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    scheduleProfileSync();
     launchConfetti();
     showToast('🎉 ¡Completaste todo el onboarding! Tu criatura quedó lista.', 5000);
   }
