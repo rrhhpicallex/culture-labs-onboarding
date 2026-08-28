@@ -867,9 +867,12 @@ function toggleBenefit(key){
 /* =========================================================
    DIAGNÓSTICO DE MADUREZ EN IA — obligatorio antes de ver
    el resto de "Resolución con IA". Una vez enviado, queda
-   bloqueado (no editable) y listo para sincronizar con
-   Supabase (tabla ai_diagnostics) más adelante.
+   bloqueado (no editable) y se sincroniza con Supabase
+   (tabla ai_diagnostics) vía la API REST nativa.
 ========================================================= */
+const SUPABASE_URL = 'https://qzcdwtdmcpcakebfkwkm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6Y2R3dGRtY3BjYWtlYmZrd2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MjgwNTksImV4cCI6MjA5MTQwNDA1OX0.i3UEPzJxtBTwtzJ4bqeUgf_nUBekXxz3pONR5sJp77U';
+const SUPABASE_AI_DIAGNOSTICS_TABLE = 'ai_diagnostics';
 const AI_DIAGNOSTIC_QUESTIONS = [
   {id:'q1', title:'Integración en la rutina diaria', options:[
     'Uso IA de forma puntual para dudas simples o para tirar una primera idea.',
@@ -1015,9 +1018,16 @@ function submitAiDiagnostic(){
     tooltip_text: d.tooltip,
     responses: AI_DIAGNOSTIC_QUESTIONS.map(q => ({
       question_id: q.id,
+      question_title: q.title,
+      selected_option_index: d.answers[q.id],
+      selected_option_text: q.options[d.answers[q.id]],
       selected_option_score: d.answers[q.id] + 1,
       evidence_text: d.evidence[q.id],
     })),
+    avatar_config: {
+      color: state.avatar?.color || null,
+      accessories: state.avatar?.accessories || {},
+    },
     created_at: d.completedAt,
   };
   handleSaveToSupabase(payload);
@@ -1026,10 +1036,27 @@ function submitAiDiagnostic(){
   render();
 }
 
-function handleSaveToSupabase(payload){
-  // Pendiente de conectar: cuando tengamos URL + anon key + nombre de tabla
-  // (sugerido: ai_diagnostics), acá va el fetch/insert a Supabase con este payload.
-  console.log('[ai_diagnostics] payload listo para Supabase:', payload);
+async function handleSaveToSupabase(payload){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_AI_DIAGNOSTICS_TABLE}`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify(payload),
+    });
+    if(!res.ok){
+      const errText = await res.text();
+      console.error('[ai_diagnostics] Error al guardar en Supabase:', res.status, errText);
+      return;
+    }
+    console.log('[ai_diagnostics] Guardado en Supabase correctamente.');
+  }catch(err){
+    console.error('[ai_diagnostics] Fallo de red al guardar en Supabase:', err);
+  }
 }
 
 function aiDiagnosticResultHTML(){
