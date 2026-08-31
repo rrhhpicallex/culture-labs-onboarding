@@ -432,6 +432,22 @@ table.pcx-table td{padding:10px 12px;background:var(--bg-alt);color:var(--plum-7
   user-select:none;-webkit-user-select:none;-moz-user-select:none;
 }
 #examModal.open{display:flex;}
+
+/* ADMIN GATE + PANEL */
+#adminGateModal, #adminModal{
+  position:fixed;inset:0;background:rgba(59,42,85,0.55);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;z-index:600;padding:24px;
+}
+#adminGateModal.open, #adminModal.open{display:flex;}
+.admin-box{width:min(1100px,94vw);max-height:90vh;overflow-y:auto;position:relative;border-radius:28px;display:block;}
+.admin-body{padding:32px 34px;}
+.admin-body h3{font-size:20px;margin-bottom:4px;}
+.admin-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:18px 0 24px;}
+.admin-stat-card{background:var(--bg-alt);border-radius:18px;padding:14px 16px;}
+.admin-stat-card .num{font-size:24px;font-weight:800;color:var(--plum-900);}
+.admin-stat-card .lbl{font-size:11.5px;font-weight:700;color:var(--plum-500);margin-top:2px;}
+.admin-body table.pcx-table{font-size:12.5px;}
+.admin-body table.pcx-table td, .admin-body table.pcx-table th{padding:8px 10px;}
 .exam-box{width:min(720px,94vw);max-height:90vh;overflow-y:auto;position:relative;border-radius:28px;}
 .exam-body{padding:36px 34px;}
 .exam-body h3{font-size:20px;margin-bottom:6px;}
@@ -510,6 +526,7 @@ table.pcx-table td{padding:10px 12px;background:var(--bg-alt);color:var(--plum-7
 
     <nav id="navlist"></nav>
     <div class="sidebar-foot">PicallEx · Programa de Onboarding</div>
+    <div class="sidebar-foot" style="cursor:pointer;text-decoration:underline;margin-top:2px;" onclick="openAdminGate()">🔑 Acceso equipo HR</div>
   </aside>
 
   <main id="main">
@@ -585,6 +602,25 @@ table.pcx-table td{padding:10px 12px;background:var(--bg-alt);color:var(--plum-7
 <div id="examModal" oncopy="return false" oncontextmenu="return false">
   <div class="modal-box exam-box">
     <div id="examModalBody" class="exam-body"></div>
+  </div>
+</div>
+
+<div id="adminGateModal">
+  <div class="modal-box" style="width:min(420px,92vw);position:relative;">
+    <button class="modal-close" onclick="closeAdminGate()">✕</button>
+    <div class="modal-controls" style="flex:1 1 100%;">
+      <h3>🔑 Acceso equipo HR</h3>
+      <p class="hint">Ingresá tu correo de PicallEx para entrar al panel de seguimiento.</p>
+      <input class="name-input" id="adminGateEmail" placeholder="tu.correo@picallex.com" onkeydown="if(event.key==='Enter')submitAdminGate()">
+      <button class="save-avatar-btn" onclick="submitAdminGate()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="adminModal">
+  <div class="modal-box admin-box" style="position:relative;">
+    <button class="modal-close" onclick="closeAdmin()">✕</button>
+    <div id="adminModalBody" class="admin-body">Cargando…</div>
   </div>
 </div>
 
@@ -1328,6 +1364,125 @@ async function syncAttemptToSupabase(moduleId, attempt){
   }catch(err){
     console.error('[quiz_attempts] Fallo de red al guardar en Supabase:', err);
   }
+}
+
+/* =========================================================
+   PANEL DE HR — acceso por email (sin contraseña todavía,
+   es un gate interino hasta que conectemos login real con
+   Google). Muestra el seguimiento agregado de todas las
+   personas que ya guardaron progreso en Supabase.
+========================================================= */
+const ADMIN_EMAILS = ['georgina@picallex.com', 'zoe@picallex.com'];
+
+function openAdminGate(){
+  document.getElementById('adminGateEmail').value = '';
+  document.getElementById('adminGateModal').classList.add('open');
+  setTimeout(()=>document.getElementById('adminGateEmail').focus(), 50);
+}
+function closeAdminGate(){
+  document.getElementById('adminGateModal').classList.remove('open');
+}
+function submitAdminGate(){
+  const email = (document.getElementById('adminGateEmail').value||'').trim().toLowerCase();
+  if(!ADMIN_EMAILS.includes(email)){
+    showToast('🚫 Ese correo no tiene acceso al panel de HR.');
+    return;
+  }
+  closeAdminGate();
+  openAdminPanel();
+}
+
+async function fetchAllRows(table){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*`, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Accept-Profile': 'public',
+      },
+    });
+    if(!res.ok){
+      console.error(`[admin] Error trayendo ${table}:`, res.status, await res.text());
+      return [];
+    }
+    return await res.json();
+  }catch(err){
+    console.error(`[admin] Fallo de red trayendo ${table}:`, err);
+    return [];
+  }
+}
+
+async function openAdminPanel(){
+  document.getElementById('adminModal').classList.add('open');
+  document.getElementById('adminModalBody').innerHTML = 'Cargando…';
+  const [profiles, diagnostics, attempts] = await Promise.all([
+    fetchAllRows(SUPABASE_PROFILES_TABLE),
+    fetchAllRows(SUPABASE_AI_DIAGNOSTICS_TABLE),
+    fetchAllRows(SUPABASE_QUIZ_ATTEMPTS_TABLE),
+  ]);
+  document.getElementById('adminModalBody').innerHTML = adminPanelHTML(profiles, diagnostics, attempts);
+}
+function closeAdmin(){
+  document.getElementById('adminModal').classList.remove('open');
+}
+
+function adminPanelHTML(profiles, diagnostics, attempts){
+  const named = profiles.filter(p=>p.name);
+  const total = named.length;
+  const avgProgress = total ? Math.round(named.reduce((a,p)=>a+(p.progress_pct||0),0)/total) : 0;
+
+  const moduleCounts = {};
+  MODULES.forEach(m=>{ moduleCounts[m.id] = 0; });
+  named.forEach(p=>{
+    Object.keys(p.completed||{}).forEach(mid=>{
+      if(p.completed[mid] && moduleCounts.hasOwnProperty(mid)) moduleCounts[mid]++;
+    });
+  });
+
+  const avgScoreN = diagnostics.length ? (diagnostics.reduce((a,d)=>a+(d.score_n||0),0)/diagnostics.length).toFixed(1) : '—';
+  const levelCounts = {N1:0,N2:0,N3:0};
+  diagnostics.forEach(d=>{ if(levelCounts.hasOwnProperty(d.n_level)) levelCounts[d.n_level]++; });
+
+  const quizPassRate = attempts.length ? Math.round(attempts.filter(a=>a.all_correct).length/attempts.length*100) : 0;
+
+  const rows = named.slice().sort((a,b)=>(b.updated_at||'').localeCompare(a.updated_at||'')).map(p=>{
+    const mod = MODULES.find(m=>m.id===p.current_module);
+    const areaLabel = p.area && AREA_COLORS[p.area] ? AREA_COLORS[p.area].name : (p.area||'—');
+    const updated = p.updated_at ? new Date(p.updated_at).toLocaleString('es-AR') : '—';
+    return `<tr>
+      <td>${p.name||'—'}</td>
+      <td>${areaLabel}</td>
+      <td>${p.start_date||'—'}</td>
+      <td>${mod?mod.emoji+' '+mod.title:(p.current_module||'—')}</td>
+      <td>${p.progress_pct||0}%</td>
+      <td>${updated}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <h3>📊 Panel de seguimiento — Culture Labs</h3>
+    <p class="exam-sub">Datos en vivo desde Supabase. Volvé a abrir el panel para traer los últimos cambios.</p>
+    <div class="admin-stats">
+      <div class="admin-stat-card"><div class="num">${total}</div><div class="lbl">Personas activas</div></div>
+      <div class="admin-stat-card"><div class="num">${avgProgress}%</div><div class="lbl">Progreso promedio</div></div>
+      <div class="admin-stat-card"><div class="num">${avgScoreN}</div><div class="lbl">Score IA promedio</div></div>
+      <div class="admin-stat-card"><div class="num">${quizPassRate}%</div><div class="lbl">Quizzes aprobados al 1er intento</div></div>
+    </div>
+    <h3 style="font-size:15px;">Avance por módulo</h3>
+    <table class="pcx-table"><thead><tr><th>Módulo</th><th>Personas que lo completaron</th></tr></thead><tbody>
+      ${MODULES.map(m=>`<tr><td>${m.emoji} ${m.title}</td><td>${moduleCounts[m.id]} / ${total}</td></tr>`).join('')}
+    </tbody></table>
+    <h3 style="font-size:15px;margin-top:22px;">Diagnóstico de madurez en IA</h3>
+    <table class="pcx-table"><thead><tr><th>Nivel</th><th>Personas</th></tr></thead><tbody>
+      <tr><td>N1 · Reactivo</td><td>${levelCounts.N1}</td></tr>
+      <tr><td>N2 · Integrado</td><td>${levelCounts.N2}</td></tr>
+      <tr><td>N3 · Impacto Colectivo</td><td>${levelCounts.N3}</td></tr>
+    </tbody></table>
+    <h3 style="font-size:15px;margin-top:22px;">Personas (${total})</h3>
+    <table class="pcx-table"><thead><tr><th>Nombre</th><th>Área</th><th>Fecha inicio</th><th>Módulo actual</th><th>Progreso</th><th>Última actividad</th></tr></thead><tbody>
+      ${rows || '<tr><td colspan="6">Todavía no hay nadie registrado.</td></tr>'}
+    </tbody></table>
+  `;
 }
 
 /* =========================================================
