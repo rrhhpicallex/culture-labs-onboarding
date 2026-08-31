@@ -448,6 +448,33 @@ table.pcx-table td{padding:10px 12px;background:var(--bg-alt);color:var(--plum-7
 .admin-stat-card .lbl{font-size:11.5px;font-weight:700;color:var(--plum-500);margin-top:2px;}
 .admin-body table.pcx-table{font-size:12.5px;}
 .admin-body table.pcx-table td, .admin-body table.pcx-table th{padding:8px 10px;}
+.admin-body tr.clickable-row{cursor:pointer;}
+.admin-body tr.clickable-row:hover td{background:var(--lilac-100);}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-weight:800;color:var(--pink-600);cursor:pointer;font-size:13px;margin-bottom:14px;}
+
+/* ADMIN GATE — pantalla de login simulada */
+.admin-gate-box{width:min(440px,92vw);}
+.admin-gate-card{padding:34px 30px 28px;text-align:center;}
+.admin-gate-brand{font-family:'Raleway';font-weight:900;font-size:22px;color:var(--plum-900);line-height:1.15;text-align:left;}
+.admin-gate-brand span{color:var(--pink-600);}
+.admin-gate-sub{font-size:12.5px;color:var(--plum-500);font-weight:600;text-align:left;margin-top:4px;margin-bottom:20px;}
+.admin-gate-divider{display:flex;align-items:center;gap:10px;font-size:11px;font-weight:700;color:var(--plum-500);margin-bottom:16px;}
+.admin-gate-divider::before, .admin-gate-divider::after{content:'';flex:1;height:1px;background:var(--lilac-100);}
+.admin-gate-account{
+  display:flex;align-items:center;gap:12px;border:2px solid var(--lilac-100);border-radius:16px;
+  padding:10px 14px;margin-bottom:10px;cursor:pointer;text-align:left;transition:border-color .15s,transform .15s;background:var(--white);
+}
+.admin-gate-account:hover{border-color:var(--lilac-500);transform:translateY(-1px);}
+.admin-gate-avatar{
+  width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--pink-500),var(--lilac-500));
+  color:#fff;font-weight:800;font-size:12.5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.admin-gate-account-info{flex:1;min-width:0;}
+.admin-gate-account-name{display:block;font-weight:700;font-size:13px;color:var(--plum-900);}
+.admin-gate-account-email{display:block;font-size:11.5px;color:var(--plum-500);}
+.admin-gate-google-g{flex-shrink:0;width:18px;height:18px;}
+.admin-gate-or{font-size:11.5px;color:var(--plum-500);font-weight:700;margin:16px 0 8px;}
+.admin-gate-note{font-size:11px;color:var(--plum-500);font-weight:600;margin-top:16px;}
 .exam-box{width:min(720px,94vw);max-height:90vh;overflow-y:auto;position:relative;border-radius:28px;}
 .exam-body{padding:36px 34px;}
 .exam-body h3{font-size:20px;margin-bottom:6px;}
@@ -606,13 +633,17 @@ table.pcx-table td{padding:10px 12px;background:var(--bg-alt);color:var(--plum-7
 </div>
 
 <div id="adminGateModal">
-  <div class="modal-box" style="width:min(420px,92vw);position:relative;">
+  <div class="modal-box admin-gate-box" style="position:relative;">
     <button class="modal-close" onclick="closeAdminGate()">✕</button>
-    <div class="modal-controls" style="flex:1 1 100%;">
-      <h3>🔑 Acceso equipo HR</h3>
-      <p class="hint">Ingresá tu correo de PicallEx para entrar al panel de seguimiento.</p>
+    <div class="admin-gate-card">
+      <div class="admin-gate-brand">Culture Labs <span>PCX</span></div>
+      <div class="admin-gate-sub">PicallEx · Panel de seguimiento de onboarding</div>
+      <div class="admin-gate-divider"><span>Ingresá con tu cuenta PicallEx</span></div>
+      <div id="adminGateAccounts"></div>
+      <div class="admin-gate-or">o ingresá otro correo</div>
       <input class="name-input" id="adminGateEmail" placeholder="tu.correo@picallex.com" onkeydown="if(event.key==='Enter')submitAdminGate()">
       <button class="save-avatar-btn" onclick="submitAdminGate()">Entrar</button>
+      <div class="admin-gate-note">🔒 Acceso restringido · Solo líderes autorizados</div>
     </div>
   </div>
 </div>
@@ -1372,12 +1403,35 @@ async function syncAttemptToSupabase(moduleId, attempt){
    Google). Muestra el seguimiento agregado de todas las
    personas que ya guardaron progreso en Supabase.
 ========================================================= */
-const ADMIN_EMAILS = ['georgina@picallex.com', 'zoe@picallex.com'];
+const ADMIN_ACCOUNTS = [
+  {name:'Georgina Zunino', email:'georgina@picallex.com', initials:'GZ'},
+  {name:'María Zoé', email:'zoe@picallex.com', initials:'ZN'},
+];
+const ADMIN_EMAILS = ADMIN_ACCOUNTS.map(a=>a.email);
+const GOOGLE_G_SVG = `<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H1.02v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H1.02A9 9 0 0 0 0 9c0 1.45.35 2.83 1.02 4.03z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 1.02 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/></svg>`;
+
+function adminAccountsHTML(){
+  return ADMIN_ACCOUNTS.map(a=>`
+    <div class="admin-gate-account" onclick="chooseAdminAccount('${a.email}')">
+      <span class="admin-gate-avatar">${a.initials}</span>
+      <span class="admin-gate-account-info">
+        <span class="admin-gate-account-name">Iniciar sesión como ${a.name}</span>
+        <span class="admin-gate-account-email">${a.email}</span>
+      </span>
+      <span class="admin-gate-google-g">${GOOGLE_G_SVG}</span>
+    </div>
+  `).join('');
+}
+
+function chooseAdminAccount(email){
+  document.getElementById('adminGateEmail').value = email;
+  submitAdminGate();
+}
 
 function openAdminGate(){
+  document.getElementById('adminGateAccounts').innerHTML = adminAccountsHTML();
   document.getElementById('adminGateEmail').value = '';
   document.getElementById('adminGateModal').classList.add('open');
-  setTimeout(()=>document.getElementById('adminGateEmail').focus(), 50);
 }
 function closeAdminGate(){
   document.getElementById('adminGateModal').classList.remove('open');
@@ -1412,6 +1466,8 @@ async function fetchAllRows(table){
   }
 }
 
+let _adminCache = {profiles:[], diagnostics:[], attempts:[]};
+
 async function openAdminPanel(){
   document.getElementById('adminModal').classList.add('open');
   document.getElementById('adminModalBody').innerHTML = 'Cargando…';
@@ -1420,10 +1476,82 @@ async function openAdminPanel(){
     fetchAllRows(SUPABASE_AI_DIAGNOSTICS_TABLE),
     fetchAllRows(SUPABASE_QUIZ_ATTEMPTS_TABLE),
   ]);
+  _adminCache = {profiles, diagnostics, attempts};
   document.getElementById('adminModalBody').innerHTML = adminPanelHTML(profiles, diagnostics, attempts);
 }
 function closeAdmin(){
   document.getElementById('adminModal').classList.remove('open');
+}
+function backToAdminList(){
+  document.getElementById('adminModalBody').innerHTML = adminPanelHTML(_adminCache.profiles, _adminCache.diagnostics, _adminCache.attempts);
+}
+
+function showPersonDetail(deviceId){
+  const p = _adminCache.profiles.find(x=>x.device_id===deviceId);
+  if(!p) return;
+  const diag = _adminCache.diagnostics.filter(d=>d.device_id===deviceId);
+  const atts = _adminCache.attempts.filter(a=>a.device_id===deviceId)
+    .sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||''));
+  document.getElementById('adminModalBody').innerHTML = personDetailHTML(p, diag, atts);
+}
+
+function personDetailHTML(p, diag, atts){
+  const areaLabel = p.area && AREA_COLORS[p.area] ? AREA_COLORS[p.area].name : (p.area||'—');
+  const updated = p.updated_at ? new Date(p.updated_at).toLocaleString('es-AR') : '—';
+
+  const modulesRows = MODULES.map(m=>{
+    const done = !!(p.completed||{})[m.id];
+    return `<tr><td>${m.emoji} ${m.title}</td><td>${done?'✅ Completo':'⏳ Pendiente'}</td></tr>`;
+  }).join('');
+
+  let diagBlock = '<p class="exam-sub">Todavía no completó el diagnóstico de madurez en IA.</p>';
+  if(diag.length){
+    const d = diag[0];
+    const responses = Array.isArray(d.responses) ? d.responses : [];
+    diagBlock = `
+      <div class="admin-stats" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr));margin-bottom:14px;">
+        <div class="admin-stat-card"><div class="num">${d.score_n}</div><div class="lbl">Score N</div></div>
+        <div class="admin-stat-card"><div class="num">${d.n_level||'—'}</div><div class="lbl">Nivel</div></div>
+      </div>
+      <p class="exam-sub" style="margin-bottom:10px;"><b>${d.profile_label||''}</b> — ${d.tooltip_text||''}</p>
+      ${responses.map((r,i)=>`
+        <div style="background:var(--bg-alt);border-radius:14px;padding:12px 14px;margin-bottom:8px;">
+          <div style="font-weight:800;font-size:12.5px;color:var(--plum-900);margin-bottom:4px;">${i+1}. ${r.question_title||''}</div>
+          <div style="font-size:12px;color:var(--plum-700);margin-bottom:4px;">Eligió: ${r.selected_option_text||''}</div>
+          ${r.evidence_text?`<div style="font-size:12px;color:var(--plum-500);font-style:italic;">Evidencia: "${r.evidence_text}"</div>`:''}
+        </div>
+      `).join('')}
+    `;
+  }
+
+  const attemptsRows = atts.map(a=>`
+    <tr>
+      <td>${(MODULES.find(m=>m.id===a.module_id)||{}).title || a.module_id}</td>
+      <td>#${a.attempt_number}</td>
+      <td>${a.correct_count}/${a.total}</td>
+      <td>${a.all_correct?'✅ Aprobado':'❌ No aprobado'}</td>
+      <td>${a.created_at ? new Date(a.created_at).toLocaleString('es-AR') : '—'}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <span class="back-link" onclick="backToAdminList()">← Volver al listado</span>
+    <h3>${p.name||'Sin nombre'}</h3>
+    <p class="exam-sub">${areaLabel} · Inicio: ${p.start_date||'—'} · Última actividad: ${updated}</p>
+    <div class="admin-stats">
+      <div class="admin-stat-card"><div class="num">${p.progress_pct||0}%</div><div class="lbl">Progreso total</div></div>
+      <div class="admin-stat-card"><div class="num">${atts.length}</div><div class="lbl">Intentos de examen</div></div>
+      <div class="admin-stat-card"><div class="num">${diag.length?diag[0].score_n:'—'}</div><div class="lbl">Score IA</div></div>
+    </div>
+    <h3 style="font-size:15px;">Módulos</h3>
+    <table class="pcx-table"><thead><tr><th>Módulo</th><th>Estado</th></tr></thead><tbody>${modulesRows}</tbody></table>
+    <h3 style="font-size:15px;margin-top:22px;">Diagnóstico de madurez en IA</h3>
+    ${diagBlock}
+    <h3 style="font-size:15px;margin-top:22px;">Historial de intentos de examen</h3>
+    <table class="pcx-table"><thead><tr><th>Módulo</th><th>Intento</th><th>Resultado</th><th>Estado</th><th>Fecha</th></tr></thead><tbody>
+      ${attemptsRows || '<tr><td colspan="5">Sin intentos registrados.</td></tr>'}
+    </tbody></table>
+  `;
 }
 
 function adminPanelHTML(profiles, diagnostics, attempts){
@@ -1449,7 +1577,7 @@ function adminPanelHTML(profiles, diagnostics, attempts){
     const mod = MODULES.find(m=>m.id===p.current_module);
     const areaLabel = p.area && AREA_COLORS[p.area] ? AREA_COLORS[p.area].name : (p.area||'—');
     const updated = p.updated_at ? new Date(p.updated_at).toLocaleString('es-AR') : '—';
-    return `<tr>
+    return `<tr class="clickable-row" onclick="showPersonDetail('${p.device_id}')">
       <td>${p.name||'—'}</td>
       <td>${areaLabel}</td>
       <td>${p.start_date||'—'}</td>
@@ -1461,7 +1589,7 @@ function adminPanelHTML(profiles, diagnostics, attempts){
 
   return `
     <h3>📊 Panel de seguimiento — Culture Labs</h3>
-    <p class="exam-sub">Datos en vivo desde Supabase. Volvé a abrir el panel para traer los últimos cambios.</p>
+    <p class="exam-sub">Datos en vivo desde Supabase. Tocá a una persona para ver su detalle completo. Volvé a abrir el panel para traer los últimos cambios.</p>
     <div class="admin-stats">
       <div class="admin-stat-card"><div class="num">${total}</div><div class="lbl">Personas activas</div></div>
       <div class="admin-stat-card"><div class="num">${avgProgress}%</div><div class="lbl">Progreso promedio</div></div>
