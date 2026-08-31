@@ -884,7 +884,7 @@ const BENEFITS = [
       'Solo se puede adquirir un dispositivo a la vez, y sin estar abonando otro equipo.',
       'Disponible recién a partir de los 6 meses en la organización.',
     ]},
-    {title:'Bancarizate', desc:'Acceso al banco Santander y a sus servicios únicos.', details:[]},
+    {title:'Bancarizate', desc:'Acceso al banco Santander y a sus servicios únicos.', details:[], countries:['ar']},
     {title:'Kit Escolar', desc:'Bono de librería para quienes tienen hijos en edad escolar.', details:['Se entrega una vez al año, en febrero, y se ve impactado en el sueldo del mes correspondiente.']},
   ]},
   {category:'PicallEx Licencias', color:'var(--area-dev)', items:[
@@ -908,7 +908,7 @@ const BENEFITS = [
     ]},
   ]},
   {category:'PicallEx Servicios', color:'var(--area-adm)', items:[
-    {title:'Descuentos en establecimientos', desc:'Tate, Farmacia del Sud, YPF Marijo, Papelera Gaso y La Piojera.', details:['Presentá tu DNI para acceder — revisá las condiciones de cada uno en Space.']},
+    {title:'Descuentos en establecimientos', desc:'Tate, Farmacia del Sud, YPF Marijo, Papelera Gaso y La Piojera.', details:['Presentá tu DNI para acceder — revisá las condiciones de cada uno en Space.'], countries:['ar']},
     {title:'Fitness', desc:'Bonificamos parte de tu cuota mensual de gimnasio, en Argentina y Colombia.', details:[
       'Registrá tu membresía y enviá el comprobante mensual a rrhh@picallex.com y pagos@picallex.com.',
       'El monto del bono se actualiza según se considere necesario.',
@@ -917,11 +917,17 @@ const BENEFITS = [
   ]},
 ];
 
+function benefitVisibleForCountry(it){
+  return !it.countries || it.countries.includes(state.country || 'ar');
+}
 function benefitsHTML(){
-  return BENEFITS.map(cat=>`
+  return BENEFITS.map(cat=>{
+    const items = cat.items.filter(benefitVisibleForCountry);
+    if(!items.length) return '';
+    return `
     <div class="card">
       <h3><span style="color:${cat.color};">●</span> ${cat.category}</h3>
-      ${cat.items.map((it,i)=>{
+      ${items.map((it,i)=>{
         const key = (cat.category+it.title).replace(/[^a-zA-Z0-9]/g,'');
         const hasDetails = it.details && it.details.length;
         return `<div class="faq-item">
@@ -933,7 +939,8 @@ function benefitsHTML(){
         </div>`;
       }).join('')}
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 function toggleBenefit(key){
   document.getElementById(`benA${key}`).classList.toggle('open');
@@ -1918,7 +1925,7 @@ inicio: () => `
     <div class="grid2" style="margin-top:14px;">
       <div>
         <label class="mono" style="font-size:11px;font-weight:800;color:var(--plum-500);">TU PAÍS</label>
-        <select class="name-input" style="margin-top:6px" onchange="state.country=this.value; persist();">
+        <select class="name-input" style="margin-top:6px" onchange="onCountryInput(this.value)">
           <option value="">Elegí tu país</option>
           ${Object.entries(COUNTRY_NAMES).map(([k,v])=>`<option value="${k}" ${state.country===k?'selected':''}>${v}</option>`).join('')}
         </select>
@@ -2507,6 +2514,14 @@ function isFeedbackTimeUnlocked(){
 function onStartDateInput(v){
   state.startDate = v; persist();
   updateSidebar();
+}
+
+async function onCountryInput(v){
+  state.country = v;
+  persist();
+  showToast('🌎 Actualizando el contenido para tu país…', 1200);
+  try{ await syncProfileToSupabase(); }catch(e){}
+  location.reload();
 }
 
 function markFeedbackDone(){
