@@ -2570,12 +2570,11 @@ function updateSidebar(){
 
   const doneCount = MODULES.filter(m=>state.completed[m.id]).length;
   const pct = Math.round((doneCount/MODULES.length)*100);
-  const dayN = Math.max(1, Math.floor((Date.now()-state.startedAt)/86400000)+1);
   document.getElementById('progressPct').textContent = pct+'%';
   document.getElementById('progressFill').style.width = pct+'%';
   document.getElementById('progressSub').textContent =
-    pct===0 ? `Día ${dayN} de tu onboarding ✨` :
-    pct<100 ? `${doneCount} de ${MODULES.length} estaciones · Día ${dayN}` :
+    pct===0 ? `Arrancando el laboratorio ✨` :
+    pct<100 ? `${doneCount} de ${MODULES.length} estaciones` :
     '¡Laboratorio completo! 🎉';
 
   if(pct===100 && !state.celebrated){
