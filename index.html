@@ -435,9 +435,11 @@ table.pcx-table td{padding:10px 12px;background:var(--bg-alt);color:var(--plum-7
 
 /* ADMIN GATE + PANEL */
 #adminGateModal, #adminModal{
-  position:fixed;inset:0;background:rgba(59,42,85,0.55);backdrop-filter:blur(4px);
+  position:fixed;inset:0;
   display:none;align-items:center;justify-content:center;z-index:600;padding:24px;
 }
+#adminModal{background:rgba(59,42,85,0.55);backdrop-filter:blur(4px);}
+#adminGateModal{background:linear-gradient(160deg,var(--lilac-100),var(--pink-100));}
 #adminGateModal.open, #adminModal.open{display:flex;}
 .admin-box{width:min(1100px,94vw);max-height:90vh;overflow-y:auto;position:relative;border-radius:28px;display:block;}
 .admin-body{padding:32px 34px;}
