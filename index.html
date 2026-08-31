@@ -1482,7 +1482,6 @@ function onSessionReady(email){
   persist();
   const link = document.getElementById('adminSidebarLink');
   if(link) link.style.display = isAdminEmail(email) ? '' : 'none';
-  if(isAdminEmail(email)) openAdminPanel(email);
 }
 function logoutSession(){
   localStorage.removeItem(LOGIN_SESSION_KEY);
