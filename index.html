@@ -448,6 +448,10 @@ table.pcx-table td{padding:10px 12px;background:var(--bg-alt);color:var(--plum-7
 .admin-stat-card .lbl{font-size:11.5px;font-weight:700;color:var(--plum-500);margin-top:2px;}
 .admin-body table.pcx-table{font-size:12.5px;}
 .admin-body table.pcx-table td, .admin-body table.pcx-table th{padding:8px 10px;}
+.admin-tabs{display:flex;gap:8px;margin:0 0 22px;flex-wrap:wrap;border-bottom:2px solid var(--bg-alt);padding-bottom:14px;}
+.admin-tab{padding:9px 18px;border-radius:20px;font-weight:800;font-size:13px;color:var(--plum-700);background:var(--bg-alt);cursor:pointer;transition:all .15s;}
+.admin-tab:hover{background:var(--lilac-100);}
+.admin-tab.active{background:linear-gradient(90deg,var(--pink-600),var(--lilac-600));color:#fff;}
 .admin-body tr.clickable-row{cursor:pointer;}
 .admin-body tr.clickable-row:hover td{background:var(--lilac-100);}
 .back-link{display:inline-flex;align-items:center;gap:6px;font-weight:800;color:var(--pink-600);cursor:pointer;font-size:13px;margin-bottom:14px;}
@@ -1500,6 +1504,7 @@ async function fetchAllRows(table){
 let _adminCache = {profiles:[], diagnostics:[], attempts:[]};
 
 async function openAdminPanel(email){
+  _adminTab = 'resumen';
   document.getElementById('adminModal').classList.add('open');
   document.getElementById('adminModalBody').innerHTML = 'Cargando…';
   document.getElementById('adminSessionLabel').textContent = email ? `Sesión: ${email}` : '';
@@ -1586,6 +1591,24 @@ function personDetailHTML(p, diag, atts){
   `;
 }
 
+let _adminTab = 'resumen';
+const ADMIN_TABS = [
+  {id:'resumen', label:'📊 Resumen'},
+  {id:'personas', label:'🧑‍🤝‍🧑 Personas'},
+  {id:'ia', label:'🤖 Diagnóstico IA'},
+];
+
+function setAdminTab(tab){
+  _adminTab = tab;
+  document.getElementById('adminModalBody').innerHTML = adminPanelHTML(_adminCache.profiles, _adminCache.diagnostics, _adminCache.attempts);
+}
+
+function adminTabsHTML(){
+  return `<div class="admin-tabs">${ADMIN_TABS.map(t=>`
+    <div class="admin-tab ${_adminTab===t.id?'active':''}" onclick="setAdminTab('${t.id}')">${t.label}</div>
+  `).join('')}</div>`;
+}
+
 function adminPanelHTML(profiles, diagnostics, attempts){
   const named = profiles.filter(p=>p.name);
   const total = named.length;
@@ -1621,31 +1644,51 @@ function adminPanelHTML(profiles, diagnostics, attempts){
     </tr>`;
   }).join('');
 
-  return `
-    <h3>📊 Panel de seguimiento — Culture Labs</h3>
-    <p class="exam-sub">Datos en vivo desde Supabase. Tocá a una persona para ver su detalle completo. Volvé a abrir el panel para traer los últimos cambios.</p>
+  const statsHTML = `
     <div class="admin-stats">
       <div class="admin-stat-card"><div class="num">${total}</div><div class="lbl">Personas activas ${tt('Cuenta a todas las personas que ya escribieron su nombre en la plataforma, sin importar cuánto avanzaron. Son: '+namesList)}</div></div>
       <div class="admin-stat-card"><div class="num">${avgProgress}%</div><div class="lbl">Progreso promedio ${tt('Promedio del % de módulos completados por cada persona activa (11 módulos cuentan; el de Feedback recién se habilita a los 15 días de la fecha de inicio).')}</div></div>
       <div class="admin-stat-card"><div class="num">${avgScoreN}</div><div class="lbl">Score IA promedio ${tt('Promedio del puntaje (1 a 5) del diagnóstico de madurez en IA, entre quienes ya lo completaron. N1 < 2.6 · N2 entre 2.6 y 3.5 · N3 > 3.5.')}</div></div>
       <div class="admin-stat-card"><div class="num">${quizPassRate}%</div><div class="lbl">Quizzes aprobados al 1er intento ${tt('De todos los intentos de examen registrados (de cualquier módulo y cualquier persona), qué % resultó con todas las respuestas correctas en ese mismo intento.')}</div></div>
+    </div>`;
+
+  let tabBody = '';
+  if(_adminTab === 'resumen'){
+    tabBody = `
+      ${statsHTML}
+      <h3 style="font-size:15px;margin-top:8px;">Avance por módulo</h3>
+      <table class="pcx-table"><thead><tr><th>Módulo</th><th>Personas que lo completaron</th></tr></thead><tbody>
+        ${MODULES.map(m=>`<tr><td>${m.emoji} ${m.title}</td><td>${moduleCounts[m.id]} / ${total}</td></tr>`).join('')}
+      </tbody></table>
+    `;
+  } else if(_adminTab === 'personas'){
+    tabBody = `
+      <p class="exam-sub">Tocá a una persona para ver su detalle completo (módulos, diagnóstico de IA e historial de exámenes).</p>
+      <table class="pcx-table"><thead><tr><th>Nombre</th><th>Área</th><th>Fecha inicio</th><th>Módulo actual</th><th>Progreso</th><th>Última actividad</th></tr></thead><tbody>
+        ${rows || '<tr><td colspan="6">Todavía no hay nadie registrado.</td></tr>'}
+      </tbody></table>
+    `;
+  } else if(_adminTab === 'ia'){
+    tabBody = `
+      <h3 style="font-size:15px;margin-top:0;">Distribución por nivel</h3>
+      <table class="pcx-table"><thead><tr><th>Nivel</th><th>Personas</th></tr></thead><tbody>
+        <tr><td>N1 · Reactivo</td><td>${levelCounts.N1}</td></tr>
+        <tr><td>N2 · Integrado</td><td>${levelCounts.N2}</td></tr>
+        <tr><td>N3 · Impacto Colectivo</td><td>${levelCounts.N3}</td></tr>
+      </tbody></table>
+      <h3 style="font-size:15px;margin-top:22px;">Detalle por pregunta ${tt('Para cada pregunta del diagnóstico, quién eligió qué opción y con qué puntaje (1 a 5). Ordenado de menor a mayor puntaje para detectar rápido quién necesita más acompañamiento en ese punto específico.')}</h3>
+      ${aiQuestionBreakdownHTML(diagnostics)}
+    `;
+  }
+
+  return `
+    <div class="module-head" style="margin-bottom:14px;">
+      <div class="eyebrow">🔒 PANEL INTERNO</div>
+      <div class="module-title" style="font-size:24px;">Panel de seguimiento</div>
+      <div class="module-sub">Datos en vivo desde Supabase — progreso, diagnóstico de IA y exámenes de todas las personas.</div>
     </div>
-    <h3 style="font-size:15px;">Avance por módulo</h3>
-    <table class="pcx-table"><thead><tr><th>Módulo</th><th>Personas que lo completaron</th></tr></thead><tbody>
-      ${MODULES.map(m=>`<tr><td>${m.emoji} ${m.title}</td><td>${moduleCounts[m.id]} / ${total}</td></tr>`).join('')}
-    </tbody></table>
-    <h3 style="font-size:15px;margin-top:22px;">Diagnóstico de madurez en IA</h3>
-    <table class="pcx-table"><thead><tr><th>Nivel</th><th>Personas</th></tr></thead><tbody>
-      <tr><td>N1 · Reactivo</td><td>${levelCounts.N1}</td></tr>
-      <tr><td>N2 · Integrado</td><td>${levelCounts.N2}</td></tr>
-      <tr><td>N3 · Impacto Colectivo</td><td>${levelCounts.N3}</td></tr>
-    </tbody></table>
-    <h3 style="font-size:15px;margin-top:22px;">Diagnóstico de IA — detalle por pregunta ${tt('Para cada pregunta del diagnóstico, quién eligió qué opción y con qué puntaje (1 a 5). Ordenado de menor a mayor puntaje para detectar rápido quién necesita más acompañamiento en ese punto específico.')}</h3>
-    ${aiQuestionBreakdownHTML(diagnostics)}
-    <h3 style="font-size:15px;margin-top:22px;">Personas (${total})</h3>
-    <table class="pcx-table"><thead><tr><th>Nombre</th><th>Área</th><th>Fecha inicio</th><th>Módulo actual</th><th>Progreso</th><th>Última actividad</th></tr></thead><tbody>
-      ${rows || '<tr><td colspan="6">Todavía no hay nadie registrado.</td></tr>'}
-    </tbody></table>
+    ${adminTabsHTML()}
+    ${tabBody}
   `;
 }
 
