@@ -451,6 +451,11 @@ table.pcx-table td{padding:10px 12px;background:var(--bg-alt);color:var(--plum-7
 .admin-body tr.clickable-row{cursor:pointer;}
 .admin-body tr.clickable-row:hover td{background:var(--lilac-100);}
 .back-link{display:inline-flex;align-items:center;gap:6px;font-weight:800;color:var(--pink-600);cursor:pointer;font-size:13px;margin-bottom:14px;}
+.admin-logout-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 34px 0;
+  font-size:12px;font-weight:700;color:var(--plum-500);
+}
+.admin-logout-bar .back-link{margin-bottom:0;}
 
 /* ADMIN GATE — pantalla de login simulada */
 .admin-gate-box{width:min(440px,92vw);}
@@ -553,7 +558,7 @@ table.pcx-table td{padding:10px 12px;background:var(--bg-alt);color:var(--plum-7
 
     <nav id="navlist"></nav>
     <div class="sidebar-foot">PicallEx · Programa de Onboarding</div>
-    <div class="sidebar-foot" style="cursor:pointer;text-decoration:underline;margin-top:2px;" onclick="openAdminGate()">🔑 Acceso equipo HR</div>
+    <div id="adminSidebarLink" class="sidebar-foot" style="display:none;cursor:pointer;text-decoration:underline;margin-top:2px;" onclick="openAdminGate()">📊 Panel HR</div>
   </aside>
 
   <main id="main">
@@ -634,16 +639,15 @@ table.pcx-table td{padding:10px 12px;background:var(--bg-alt);color:var(--plum-7
 
 <div id="adminGateModal">
   <div class="modal-box admin-gate-box" style="position:relative;">
-    <button class="modal-close" onclick="closeAdminGate()">✕</button>
     <div class="admin-gate-card">
       <div class="admin-gate-brand">Culture Labs <span>PCX</span></div>
-      <div class="admin-gate-sub">PicallEx · Panel de seguimiento de onboarding</div>
+      <div class="admin-gate-sub">PicallEx · Ingresá para empezar tu onboarding</div>
       <div class="admin-gate-divider"><span>Ingresá con tu cuenta PicallEx</span></div>
       <div id="adminGateAccounts"></div>
-      <div class="admin-gate-or">o ingresá otro correo</div>
+      <div class="admin-gate-or">o ingresá tu correo</div>
       <input class="name-input" id="adminGateEmail" placeholder="tu.correo@picallex.com" onkeydown="if(event.key==='Enter')submitAdminGate()">
       <button class="save-avatar-btn" onclick="submitAdminGate()">Entrar</button>
-      <div class="admin-gate-note">🔒 Acceso restringido · Solo líderes autorizados</div>
+      <div class="admin-gate-note">🔒 Tu progreso queda guardado con este correo</div>
     </div>
   </div>
 </div>
@@ -651,6 +655,7 @@ table.pcx-table td{padding:10px 12px;background:var(--bg-alt);color:var(--plum-7
 <div id="adminModal">
   <div class="modal-box admin-box" style="position:relative;">
     <button class="modal-close" onclick="closeAdmin()">✕</button>
+    <div class="admin-logout-bar"><span id="adminSessionLabel"></span><span class="back-link" onclick="logoutSession()">🚪 Cerrar sesión</span></div>
     <div id="adminModalBody" class="admin-body">Cargando…</div>
   </div>
 </div>
@@ -1428,22 +1433,48 @@ function chooseAdminAccount(email){
   submitAdminGate();
 }
 
-function openAdminGate(){
+const LOGIN_SESSION_KEY = 'pcx_session_email';
+function currentSessionEmail(){ return localStorage.getItem(LOGIN_SESSION_KEY) || null; }
+function isAdminEmail(email){ return !!email && ADMIN_EMAILS.includes(email); }
+
+/* Gate de entrada — hoy es solo captura de email (sin password real),
+   pensado para reemplazarse por login de Google más adelante sin
+   tener que rediseñar la pantalla. */
+function showLoginGate(){
   document.getElementById('adminGateAccounts').innerHTML = adminAccountsHTML();
   document.getElementById('adminGateEmail').value = '';
   document.getElementById('adminGateModal').classList.add('open');
 }
-function closeAdminGate(){
-  document.getElementById('adminGateModal').classList.remove('open');
+function openAdminGate(){
+  // Reutilizado por el link del sidebar: si ya hay sesión de admin, va directo al panel.
+  const savedEmail = currentSessionEmail();
+  if(isAdminEmail(savedEmail)){
+    openAdminPanel(savedEmail);
+    return;
+  }
+  showLoginGate();
 }
 function submitAdminGate(){
   const email = (document.getElementById('adminGateEmail').value||'').trim().toLowerCase();
-  if(!ADMIN_EMAILS.includes(email)){
-    showToast('🚫 Ese correo no tiene acceso al panel de HR.');
+  if(!email || !email.includes('@')){
+    showToast('✏️ Escribí un correo válido para continuar.');
     return;
   }
-  closeAdminGate();
-  openAdminPanel();
+  localStorage.setItem(LOGIN_SESSION_KEY, email);
+  document.getElementById('adminGateModal').classList.remove('open');
+  onSessionReady(email);
+}
+function onSessionReady(email){
+  state.email = email;
+  persist();
+  const link = document.getElementById('adminSidebarLink');
+  if(link) link.style.display = isAdminEmail(email) ? '' : 'none';
+  if(isAdminEmail(email)) openAdminPanel(email);
+}
+function logoutSession(){
+  localStorage.removeItem(LOGIN_SESSION_KEY);
+  closeAdmin();
+  location.reload();
 }
 
 async function fetchAllRows(table){
@@ -1468,9 +1499,10 @@ async function fetchAllRows(table){
 
 let _adminCache = {profiles:[], diagnostics:[], attempts:[]};
 
-async function openAdminPanel(){
+async function openAdminPanel(email){
   document.getElementById('adminModal').classList.add('open');
   document.getElementById('adminModalBody').innerHTML = 'Cargando…';
+  document.getElementById('adminSessionLabel').textContent = email ? `Sesión: ${email}` : '';
   const [profiles, diagnostics, attempts] = await Promise.all([
     fetchAllRows(SUPABASE_PROFILES_TABLE),
     fetchAllRows(SUPABASE_AI_DIAGNOSTICS_TABLE),
@@ -1539,9 +1571,9 @@ function personDetailHTML(p, diag, atts){
     <h3>${p.name||'Sin nombre'}</h3>
     <p class="exam-sub">${areaLabel} · Inicio: ${p.start_date||'—'} · Última actividad: ${updated}</p>
     <div class="admin-stats">
-      <div class="admin-stat-card"><div class="num">${p.progress_pct||0}%</div><div class="lbl">Progreso total</div></div>
-      <div class="admin-stat-card"><div class="num">${atts.length}</div><div class="lbl">Intentos de examen</div></div>
-      <div class="admin-stat-card"><div class="num">${diag.length?diag[0].score_n:'—'}</div><div class="lbl">Score IA</div></div>
+      <div class="admin-stat-card"><div class="num">${p.progress_pct||0}%</div><div class="lbl">Progreso total ${tt('% de los 11 módulos evaluables que ya marcó como completos (el de Feedback se habilita a los 15 días de su fecha de inicio).')}</div></div>
+      <div class="admin-stat-card"><div class="num">${atts.length}</div><div class="lbl">Intentos de examen ${tt('Cuenta cada envío de examen que hizo, sumando todos los módulos, incluidos los reintentos.')}</div></div>
+      <div class="admin-stat-card"><div class="num">${diag.length?diag[0].score_n:'—'}</div><div class="lbl">Score IA ${tt('Puntaje 1 a 5 del diagnóstico de madurez en IA. N1 < 2.6 (Reactivo) · N2 entre 2.6 y 3.5 (Integrado) · N3 > 3.5 (Impacto Colectivo).')}</div></div>
     </div>
     <h3 style="font-size:15px;">Módulos</h3>
     <table class="pcx-table"><thead><tr><th>Módulo</th><th>Estado</th></tr></thead><tbody>${modulesRows}</tbody></table>
@@ -1573,6 +1605,8 @@ function adminPanelHTML(profiles, diagnostics, attempts){
 
   const quizPassRate = attempts.length ? Math.round(attempts.filter(a=>a.all_correct).length/attempts.length*100) : 0;
 
+  const namesList = named.map(p=>p.name).join(', ') || 'Todavía nadie.';
+
   const rows = named.slice().sort((a,b)=>(b.updated_at||'').localeCompare(a.updated_at||'')).map(p=>{
     const mod = MODULES.find(m=>m.id===p.current_module);
     const areaLabel = p.area && AREA_COLORS[p.area] ? AREA_COLORS[p.area].name : (p.area||'—');
@@ -1591,10 +1625,10 @@ function adminPanelHTML(profiles, diagnostics, attempts){
     <h3>📊 Panel de seguimiento — Culture Labs</h3>
     <p class="exam-sub">Datos en vivo desde Supabase. Tocá a una persona para ver su detalle completo. Volvé a abrir el panel para traer los últimos cambios.</p>
     <div class="admin-stats">
-      <div class="admin-stat-card"><div class="num">${total}</div><div class="lbl">Personas activas</div></div>
-      <div class="admin-stat-card"><div class="num">${avgProgress}%</div><div class="lbl">Progreso promedio</div></div>
-      <div class="admin-stat-card"><div class="num">${avgScoreN}</div><div class="lbl">Score IA promedio</div></div>
-      <div class="admin-stat-card"><div class="num">${quizPassRate}%</div><div class="lbl">Quizzes aprobados al 1er intento</div></div>
+      <div class="admin-stat-card"><div class="num">${total}</div><div class="lbl">Personas activas ${tt('Cuenta a todas las personas que ya escribieron su nombre en la plataforma, sin importar cuánto avanzaron. Son: '+namesList)}</div></div>
+      <div class="admin-stat-card"><div class="num">${avgProgress}%</div><div class="lbl">Progreso promedio ${tt('Promedio del % de módulos completados por cada persona activa (11 módulos cuentan; el de Feedback recién se habilita a los 15 días de la fecha de inicio).')}</div></div>
+      <div class="admin-stat-card"><div class="num">${avgScoreN}</div><div class="lbl">Score IA promedio ${tt('Promedio del puntaje (1 a 5) del diagnóstico de madurez en IA, entre quienes ya lo completaron. N1 < 2.6 · N2 entre 2.6 y 3.5 · N3 > 3.5.')}</div></div>
+      <div class="admin-stat-card"><div class="num">${quizPassRate}%</div><div class="lbl">Quizzes aprobados al 1er intento ${tt('De todos los intentos de examen registrados (de cualquier módulo y cualquier persona), qué % resultó con todas las respuestas correctas en ese mismo intento.')}</div></div>
     </div>
     <h3 style="font-size:15px;">Avance por módulo</h3>
     <table class="pcx-table"><thead><tr><th>Módulo</th><th>Personas que lo completaron</th></tr></thead><tbody>
@@ -1606,11 +1640,38 @@ function adminPanelHTML(profiles, diagnostics, attempts){
       <tr><td>N2 · Integrado</td><td>${levelCounts.N2}</td></tr>
       <tr><td>N3 · Impacto Colectivo</td><td>${levelCounts.N3}</td></tr>
     </tbody></table>
+    <h3 style="font-size:15px;margin-top:22px;">Diagnóstico de IA — detalle por pregunta ${tt('Para cada pregunta del diagnóstico, quién eligió qué opción y con qué puntaje (1 a 5). Ordenado de menor a mayor puntaje para detectar rápido quién necesita más acompañamiento en ese punto específico.')}</h3>
+    ${aiQuestionBreakdownHTML(diagnostics)}
     <h3 style="font-size:15px;margin-top:22px;">Personas (${total})</h3>
     <table class="pcx-table"><thead><tr><th>Nombre</th><th>Área</th><th>Fecha inicio</th><th>Módulo actual</th><th>Progreso</th><th>Última actividad</th></tr></thead><tbody>
       ${rows || '<tr><td colspan="6">Todavía no hay nadie registrado.</td></tr>'}
     </tbody></table>
   `;
+}
+
+function aiQuestionBreakdownHTML(diagnostics){
+  if(!diagnostics.length) return '<p class="exam-sub">Todavía nadie completó el diagnóstico de IA.</p>';
+  return AI_DIAGNOSTIC_QUESTIONS.map(q=>{
+    const entries = diagnostics.map(d=>{
+      const r = (d.responses||[]).find(x=>x.question_id===q.id);
+      if(!r) return null;
+      return {name: d.user_id || 'Sin nombre', score: r.selected_option_score, text: r.selected_option_text, evidence: r.evidence_text};
+    }).filter(Boolean).sort((a,b)=>a.score-b.score);
+    const avg = entries.length ? (entries.reduce((a,e)=>a+e.score,0)/entries.length).toFixed(1) : '—';
+    const rows = entries.map(e=>`<tr style="${e.score<=2?'background:#FCE8E6;':''}">
+      <td>${e.name}</td>
+      <td>${e.score}/5</td>
+      <td>${e.text}</td>
+      <td style="font-style:italic;">${e.evidence||'—'}</td>
+    </tr>`).join('');
+    return `
+      <div style="margin-bottom:16px;">
+        <div style="font-weight:800;font-size:13px;color:var(--plum-900);margin-bottom:6px;">${q.title} · promedio ${avg}/5</div>
+        <table class="pcx-table"><thead><tr><th>Persona</th><th>Puntaje</th><th>Respuesta elegida</th><th>Evidencia</th></tr></thead><tbody>
+          ${rows || '<tr><td colspan="4">Sin datos</td></tr>'}
+        </tbody></table>
+      </div>`;
+  }).join('');
 }
 
 /* =========================================================
@@ -3045,6 +3106,13 @@ function init(){
   initMusicPlayer();
   if(!state.welcomeSeen){
     document.getElementById('welcomeModal').classList.add('open');
+  }
+
+  const savedEmail = currentSessionEmail();
+  if(savedEmail){
+    onSessionReady(savedEmail);
+  } else {
+    showLoginGate();
   }
 }
 init();
