@@ -2,6 +2,11 @@
   command = "node build.js"
   publish = "dist"
 
+  [build.environment]
+    # La URL y la anon key son públicas por diseño: viajan al navegador en el
+    # bundle y lo que protege la data es RLS. El scanner de Netlify no lo sabe.
+    SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL,SUPABASE_ANON_KEY"
+
 [[headers]]
   for = "/*"
   [headers.values]
