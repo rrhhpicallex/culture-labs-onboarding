@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@500;700;800;900&family=Quicksand:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg:#FFF7FB;
@@ -486,6 +487,16 @@ table.pcx-table td{padding:10px 12px;background:var(--bg-alt);color:var(--plum-7
 .admin-gate-google-g{flex-shrink:0;width:18px;height:18px;}
 .admin-gate-or{font-size:11.5px;color:var(--plum-500);font-weight:700;margin:16px 0 8px;}
 .admin-gate-note{font-size:11px;color:var(--plum-500);font-weight:600;margin-top:16px;}
+.google-btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+  border:2px solid var(--lilac-100);border-radius:16px;padding:13px 16px;cursor:pointer;
+  background:var(--white);font-family:inherit;font-weight:700;font-size:13.5px;color:var(--plum-900);
+  transition:border-color .15s,transform .15s;
+}
+.google-btn:hover{border-color:var(--lilac-500);transform:translateY(-1px);}
+.google-btn:disabled{opacity:.55;cursor:default;transform:none;}
+.google-btn svg{width:18px;height:18px;flex-shrink:0;}
+.admin-gate-error{display:none;margin-top:12px;font-size:12px;font-weight:700;color:var(--pink-600);background:var(--pink-100);border-radius:12px;padding:9px 12px;text-align:left;}
 .exam-box{width:min(720px,94vw);max-height:90vh;overflow-y:auto;position:relative;border-radius:28px;}
 .exam-body{padding:36px 34px;}
 .exam-body h3{font-size:20px;margin-bottom:6px;}
@@ -649,12 +660,15 @@ table.pcx-table td{padding:10px 12px;background:var(--bg-alt);color:var(--plum-7
     <div class="admin-gate-card">
       <div class="admin-gate-brand">Culture Labs <span>PCX</span></div>
       <div class="admin-gate-sub">PicallEx · Ingresá para empezar tu onboarding</div>
-      <div class="admin-gate-divider"><span>Ingresá con tu cuenta PicallEx</span></div>
-      <div id="adminGateAccounts"></div>
-      <div class="admin-gate-or">o ingresá tu correo</div>
-      <input class="name-input" id="adminGateEmail" placeholder="tu.correo@picallex.com" onkeydown="if(event.key==='Enter')submitAdminGate()">
-      <button class="save-avatar-btn" onclick="submitAdminGate()">Entrar</button>
-      <div class="admin-gate-note">🔒 Tu progreso queda guardado con este correo</div>
+      <div class="admin-gate-divider"><span>Ingresá con tu cuenta corporativa</span></div>
+      <button class="google-btn" id="googleLoginBtn" onclick="signInWithGoogle()"></button>
+      <div class="admin-gate-error" id="loginGateError"></div>
+      <div id="devEmailFallback" style="display:none;">
+        <div class="admin-gate-or">o ingresá tu correo</div>
+        <input class="name-input" id="adminGateEmail" placeholder="tu.correo@picallex.com" onkeydown="if(event.key==='Enter')submitAdminGate()">
+        <button class="save-avatar-btn" onclick="submitAdminGate()">Entrar</button>
+      </div>
+      <div class="admin-gate-note">🔒 Acceso restringido a cuentas @picallex.com</div>
     </div>
   </div>
 </div>
@@ -956,8 +970,37 @@ function toggleBenefit(key){
    bloqueado (no editable) y se sincroniza con Supabase
    (tabla ai_diagnostics) vía la API REST nativa.
 ========================================================= */
-const SUPABASE_URL = 'https://qzcdwtdmcpcakebfkwkm.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6Y2R3dGRtY3BjYWtlYmZrd2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MjgwNTksImV4cCI6MjA5MTQwNDA1OX0.i3UEPzJxtBTwtzJ4bqeUgf_nUBekXxz3pONR5sJp77U';
+/* Valores inyectados por build.js desde las env vars del deploy (Netlify).
+   Si quedan con el placeholder __..__, el build no corrió: la app cae al gate
+   de email manual y no escribe en Supabase. */
+const SUPABASE_URL = '__SUPABASE_URL__';
+const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
+const SUPABASE_SCHEMA = '__SUPABASE_SCHEMA__';
+const ALLOWED_EMAIL_DOMAIN = '@picallex.com';
+const SUPABASE_READY = !SUPABASE_URL.startsWith('__') && !SUPABASE_ANON_KEY.startsWith('__');
+
+let sbAuth = null;
+try{
+  if(SUPABASE_READY && window.supabase){
+    sbAuth = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { flowType:'implicit', detectSessionInUrl:true, persistSession:true, autoRefreshToken:true, lock: async (n,t,fn)=>fn() },
+    });
+  }
+}catch(e){ console.error('[supabase] createClient falló:', e); }
+if(SUPABASE_READY && !sbAuth) console.error('[supabase] cliente no inicializado — ¿cargó supabase-js?');
+if(!SUPABASE_READY) console.error('[supabase] faltan SUPABASE_URL / SUPABASE_ANON_KEY: el build no reemplazó los placeholders.');
+
+let _accessToken = null;
+let _authUserId = null;
+
+/* El token del usuario logueado reemplaza a la anon key en cada request, así
+   las policies de RLS pueden resolver auth.uid() / auth.jwt(). */
+function sbHeaders(){
+  return {
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${_accessToken || SUPABASE_ANON_KEY}`,
+  };
+}
 const SUPABASE_AI_DIAGNOSTICS_TABLE = 'ai_diagnostics';
 const SUPABASE_PROFILES_TABLE = 'onboarding_profiles';
 const SUPABASE_QUIZ_ATTEMPTS_TABLE = 'quiz_attempts';
@@ -1099,7 +1142,9 @@ function submitAiDiagnostic(){
   persist();
 
   const payload = {
-    user_id: state.name || null,
+    user_id: _authUserId || null,
+    email: currentSessionEmail(),
+    person_name: state.name || null,
     device_id: getDeviceId(),
     score_n: d.score,
     n_level: d.level,
@@ -1130,10 +1175,9 @@ async function handleSaveToSupabase(payload){
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_AI_DIAGNOSTICS_TABLE}`, {
       method: 'POST',
       headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        ...sbHeaders(),
         'Content-Type': 'application/json',
-        'Content-Profile': 'public',
+        'Content-Profile': SUPABASE_SCHEMA,
         'Prefer': 'return=minimal',
       },
       body: JSON.stringify(payload),
@@ -1388,6 +1432,8 @@ async function syncAttemptToSupabase(moduleId, attempt){
   try{
     const payload = {
       device_id: getDeviceId(),
+      user_id: _authUserId || null,
+      email: currentSessionEmail(),
       name: attempt.name,
       module_id: moduleId,
       attempt_number: (state.examAttempts[moduleId]||[]).length,
@@ -1400,10 +1446,9 @@ async function syncAttemptToSupabase(moduleId, attempt){
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_QUIZ_ATTEMPTS_TABLE}`, {
       method: 'POST',
       headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        ...sbHeaders(),
         'Content-Type': 'application/json',
-        'Content-Profile': 'public',
+        'Content-Profile': SUPABASE_SCHEMA,
         'Prefer': 'return=minimal',
       },
       body: JSON.stringify(payload),
@@ -1429,64 +1474,140 @@ const ADMIN_ACCOUNTS = [
 const ADMIN_EMAILS = ADMIN_ACCOUNTS.map(a=>a.email);
 const GOOGLE_G_SVG = `<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H1.02v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H1.02A9 9 0 0 0 0 9c0 1.45.35 2.83 1.02 4.03z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 1.02 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/></svg>`;
 
-function adminAccountsHTML(){
-  return ADMIN_ACCOUNTS.map(a=>`
-    <div class="admin-gate-account" onclick="chooseAdminAccount('${a.email}')">
-      <span class="admin-gate-avatar">${a.initials}</span>
-      <span class="admin-gate-account-info">
-        <span class="admin-gate-account-name">Iniciar sesión como ${a.name}</span>
-        <span class="admin-gate-account-email">${a.email}</span>
-      </span>
-      <span class="admin-gate-google-g">${GOOGLE_G_SVG}</span>
-    </div>
-  `).join('');
-}
-
-function chooseAdminAccount(email){
-  document.getElementById('adminGateEmail').value = email;
-  submitAdminGate();
-}
-
 const LOGIN_SESSION_KEY = 'pcx_session_email';
 function currentSessionEmail(){ return localStorage.getItem(LOGIN_SESSION_KEY) || null; }
 function isAdminEmail(email){ return !!email && ADMIN_EMAILS.includes(email); }
 
-/* Gate de entrada — hoy es solo captura de email (sin password real),
-   pensado para reemplazarse por login de Google más adelante sin
-   tener que rediseñar la pantalla. */
+/* =========================================================
+   LOGIN — Google OAuth vía Supabase Auth (mismo proyecto que
+   interno-talent / interno-leads-talents). El chequeo de
+   dominio del front es cosmético: lo que protege la data son
+   las policies de RLS en Supabase.
+========================================================= */
+function loginGateError(msg){
+  const el = document.getElementById('loginGateError');
+  if(!el) return;
+  if(!msg){ el.style.display='none'; el.textContent=''; return; }
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = 'block';
+}
+
 function showLoginGate(){
-  document.getElementById('adminGateAccounts').innerHTML = adminAccountsHTML();
-  document.getElementById('adminGateEmail').value = '';
+  const btn = document.getElementById('googleLoginBtn');
+  if(btn){
+    btn.innerHTML = `${GOOGLE_G_SVG}<span>Continuar con Google</span>`;
+    btn.disabled = false;
+    btn.style.display = sbAuth ? 'flex' : 'none';
+  }
+  const fb = document.getElementById('devEmailFallback');
+  if(fb) fb.style.display = sbAuth ? 'none' : 'block';
+  const input = document.getElementById('adminGateEmail');
+  if(input) input.value = '';
   document.getElementById('adminGateModal').classList.add('open');
 }
-function openAdminGate(){
-  // Reutilizado por el link del sidebar: si ya hay sesión de admin, va directo al panel.
-  const savedEmail = currentSessionEmail();
-  if(isAdminEmail(savedEmail)){
-    openAdminPanel(savedEmail);
+
+async function signInWithGoogle(){
+  loginGateError('');
+  if(!sbAuth){ loginGateError('Supabase no está configurado — revisá las env vars del build.'); return; }
+  const btn = document.getElementById('googleLoginBtn');
+  if(btn) btn.disabled = true;
+  try{
+    const { error } = await sbAuth.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + window.location.pathname,
+        queryParams: { hd: 'picallex.com', prompt: 'select_account' },
+      },
+    });
+    if(error) throw error;
+  }catch(e){
+    console.error('[auth] signInWithGoogle falló:', e);
+    loginGateError('No se pudo iniciar sesión: ' + (e.message||e));
+    if(btn) btn.disabled = false;
+  }
+}
+
+// Google deja el #access_token en la URL después del redirect.
+function stripAuthHash(){
+  if(window.location.hash.includes('access_token')){
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+}
+
+async function applySession(session){
+  stripAuthHash();
+  const email = (session && session.user && session.user.email || '').toLowerCase();
+  if(!email){
+    _accessToken = null; _authUserId = null;
+    localStorage.removeItem(LOGIN_SESSION_KEY);
+    showLoginGate();
     return;
   }
+  if(!email.endsWith(ALLOWED_EMAIL_DOMAIN)){
+    _accessToken = null; _authUserId = null;
+    localStorage.removeItem(LOGIN_SESSION_KEY);
+    try{ await sbAuth.auth.signOut(); }catch(e){}
+    showLoginGate();
+    loginGateError('Solo se permite el acceso con cuentas ' + ALLOWED_EMAIL_DOMAIN + '.');
+    return;
+  }
+  _accessToken = session.access_token || null;
+  _authUserId = session.user.id || null;
+  localStorage.setItem(LOGIN_SESSION_KEY, email);
+  loginGateError('');
+  document.getElementById('adminGateModal').classList.remove('open');
+  onSessionReady(email);
+  syncProfileToSupabase();
+}
+
+async function bootstrapAuth(){
+  if(!sbAuth){
+    const saved = currentSessionEmail();
+    if(saved) onSessionReady(saved); else showLoginGate();
+    return;
+  }
+  sbAuth.auth.onAuthStateChange((_event, session)=>{ applySession(session); });
+  try{
+    const { data } = await sbAuth.auth.getSession();
+    applySession(data && data.session || null);
+  }catch(e){
+    console.error('[auth] getSession falló:', e);
+    showLoginGate();
+  }
+}
+
+function openAdminGate(){
+  const email = currentSessionEmail();
+  if(isAdminEmail(email)){ openAdminPanel(email); return; }
+  if(email){ showToast('🔒 Tu cuenta no tiene acceso al panel de HR.'); return; }
   showLoginGate();
 }
+
+/* Gate de email manual — solo queda vivo cuando no hay Supabase configurado
+   (build local sin env vars). Con OAuth activo el bloque está oculto. */
 function submitAdminGate(){
   const email = (document.getElementById('adminGateEmail').value||'').trim().toLowerCase();
-  if(!email || !email.includes('@')){
-    showToast('✏️ Escribí un correo válido para continuar.');
+  if(!email || !email.endsWith(ALLOWED_EMAIL_DOMAIN)){
+    showToast('✏️ Ingresá tu correo ' + ALLOWED_EMAIL_DOMAIN + '.');
     return;
   }
   localStorage.setItem(LOGIN_SESSION_KEY, email);
   document.getElementById('adminGateModal').classList.remove('open');
   onSessionReady(email);
 }
+
 function onSessionReady(email){
   state.email = email;
   persist();
   const link = document.getElementById('adminSidebarLink');
   if(link) link.style.display = isAdminEmail(email) ? '' : 'none';
 }
-function logoutSession(){
+
+async function logoutSession(){
   localStorage.removeItem(LOGIN_SESSION_KEY);
+  _accessToken = null; _authUserId = null;
   closeAdmin();
+  if(sbAuth){ try{ await sbAuth.auth.signOut(); }catch(e){} }
   location.reload();
 }
 
@@ -1494,9 +1615,8 @@ async function fetchAllRows(table){
   try{
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*`, {
       headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Accept-Profile': 'public',
+        ...sbHeaders(),
+        'Accept-Profile': SUPABASE_SCHEMA,
       },
     });
     if(!res.ok){
@@ -1707,7 +1827,7 @@ function aiQuestionBreakdownHTML(diagnostics){
     const entries = diagnostics.map(d=>{
       const r = (d.responses||[]).find(x=>x.question_id===q.id);
       if(!r) return null;
-      return {name: d.user_id || 'Sin nombre', score: r.selected_option_score, text: r.selected_option_text, evidence: r.evidence_text};
+      return {name: d.person_name || d.email || d.user_id || 'Sin nombre', score: r.selected_option_score, text: r.selected_option_text, evidence: r.evidence_text};
     }).filter(Boolean).sort((a,b)=>a.score-b.score);
     const avg = entries.length ? (entries.reduce((a,e)=>a+e.score,0)/entries.length).toFixed(1) : '—';
     const rows = entries.map(e=>`<tr style="${e.score<=2?'background:#FCE8E6;':''}">
@@ -2441,6 +2561,8 @@ function buildProfilePayload(){
   const doneCount = MODULES.filter(m=>state.completed[m.id]).length;
   return {
     device_id: getDeviceId(),
+    user_id: _authUserId || null,
+    email: currentSessionEmail(),
     name: state.name || null,
     area: state.area || null,
     country: state.country || null,
@@ -2465,10 +2587,9 @@ async function syncProfileToSupabase(){
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_PROFILES_TABLE}?on_conflict=device_id`, {
       method: 'POST',
       headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        ...sbHeaders(),
         'Content-Type': 'application/json',
-        'Content-Profile': 'public',
+        'Content-Profile': SUPABASE_SCHEMA,
         'Prefer': 'resolution=merge-duplicates,return=minimal',
       },
       body: JSON.stringify(buildProfilePayload()),
@@ -3167,12 +3288,8 @@ function init(){
     document.getElementById('welcomeModal').classList.add('open');
   }
 
-  const savedEmail = currentSessionEmail();
-  if(savedEmail){
-    onSessionReady(savedEmail);
-  } else {
-    showLoginGate();
-  }
+  if(!currentSessionEmail()) showLoginGate();
+  bootstrapAuth();
 }
 init();
 </script>
