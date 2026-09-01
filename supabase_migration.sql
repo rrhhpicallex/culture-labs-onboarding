@@ -107,8 +107,11 @@ alter table onboarding.ai_diagnostics add column if not exists user_id uuid;
 alter table onboarding.ai_diagnostics add column if not exists email text;
 alter table onboarding.ai_diagnostics add column if not exists person_name text;
 
--- ai_diagnostics.user_id venía guardando el NOMBRE tipeado a mano. Ahora user_id
--- es el uuid de auth.users y el nombre pasa a person_name.
+-- ai_diagnostics.user_id venía guardando el NOMBRE tipeado a mano y era not null.
+-- Ahora user_id es el uuid de auth.users (nullable, porque las filas viejas no
+-- tienen sesión asociada) y el nombre pasa a person_name.
+alter table onboarding.ai_diagnostics alter column user_id drop not null;
+
 do $$
 begin
   if (select data_type from information_schema.columns
