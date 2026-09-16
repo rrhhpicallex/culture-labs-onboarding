@@ -1654,6 +1654,45 @@ function backToAdminList(){
   document.getElementById('adminModalBody').innerHTML = adminPanelHTML(_adminCache.profiles, _adminCache.diagnostics, _adminCache.attempts);
 }
 
+function findOrgPerson(name){
+  if(!name) return null;
+  const nn = normName(name);
+  for(const g of ORG){
+    for(const p of g.people){
+      const parts = p.name.split(' ').map(normName);
+      if(normName(p.name)===nn || parts.every(part=>nn.includes(part))) return p;
+    }
+  }
+  return null;
+}
+
+async function sendSlackFeedbackReminder(deviceId){
+  const p = _adminCache.profiles.find(x=>x.device_id===deviceId);
+  if(!p) return;
+  const orgPerson = findOrgPerson(p.name);
+  if(!orgPerson || !orgPerson.slack){
+    showToast('🤷 No encontré el Slack ID de esta persona.');
+    return;
+  }
+  const firstName = (p.name||'').split(' ')[0] || 'hola';
+  const text = `¡Hola ${firstName}! 👋 Ya se habilitó tu encuesta de feedback de la primera semana en Culture Labs — la encontrás en el módulo "Feedback de tu primera semana" de la plataforma. ¡Gracias por completarla! 💌`;
+  try{
+    const res = await fetch('/.netlify/functions/slack-notify', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization': `Bearer ${_accessToken}` },
+      body: JSON.stringify({ slackId: orgPerson.slack, text }),
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok || !data.ok){
+      showToast('❌ No se pudo enviar: '+(data.error||res.status));
+      return;
+    }
+    showToast('✅ Mensaje de Slack enviado a '+p.name);
+  }catch(e){
+    showToast('❌ Falló la conexión con la función de Slack.');
+  }
+}
+
 function showPersonDetail(deviceId){
   const p = _adminCache.profiles.find(x=>x.device_id===deviceId);
   if(!p) return;
@@ -1702,10 +1741,16 @@ function personDetailHTML(p, diag, atts){
     </tr>
   `).join('');
 
+  const orgPerson = findOrgPerson(p.name);
+  const slackBtn = orgPerson && orgPerson.slack
+    ? `<button class="save-avatar-btn" style="width:auto;display:inline-flex;padding:8px 16px;font-size:12.5px;margin-top:8px;" onclick="sendSlackFeedbackReminder('${p.device_id}')">📩 Avisar por Slack (feedback semana 1)</button>`
+    : `<span class="exam-sub">🤷 No encontré el Slack ID de esta persona en el organigrama.</span>`;
+
   return `
     <span class="back-link" onclick="backToAdminList()">← Volver al listado</span>
     <h3>${p.name||'Sin nombre'}</h3>
     <p class="exam-sub">${areaLabel} · Inicio: ${p.start_date||'—'} · Última actividad: ${updated}</p>
+    <div style="margin-bottom:10px;">${slackBtn}</div>
     <div class="admin-stats">
       <div class="admin-stat-card"><div class="num">${p.progress_pct||0}%</div><div class="lbl">Progreso total ${tt('% de los 11 módulos evaluables que ya marcó como completos (el de Feedback se habilita a los 15 días de su fecha de inicio).')}</div></div>
       <div class="admin-stat-card"><div class="num">${atts.length}</div><div class="lbl">Intentos de examen ${tt('Cuenta cada envío de examen que hizo, sumando todos los módulos, incluidos los reintentos.')}</div></div>

@@ -7,6 +7,11 @@
     # bundle y lo que protege la data es RLS. El scanner de Netlify no lo sabe.
     SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL,SUPABASE_ANON_KEY"
 
+[functions]
+  # SLACK_BOT_TOKEN vive acá adentro (variable de entorno de Netlify), nunca
+  # en index.html — este código corre en el servidor, no en el navegador.
+  directory = "netlify/functions"
+
 [[headers]]
   for = "/*"
   [headers.values]
