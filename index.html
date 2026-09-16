@@ -2697,8 +2697,22 @@ async function onCountryInput(v){
 function markFeedbackDone(){
   state.completed.feedbackonb = true;
   persist();
+  notifyHRFeedbackCompleted();
   showToast('💌 ¡Gracias por tu feedback!');
   render();
+}
+
+async function notifyHRFeedbackCompleted(){
+  if(!_accessToken) return;
+  try{
+    await fetch('/.netlify/functions/slack-feedback-done', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization': `Bearer ${_accessToken}` },
+      body: JSON.stringify({ name: state.name || '' }),
+    });
+  }catch(e){
+    console.error('[slack-feedback-done] fallo de red:', e);
+  }
 }
 
 /* =========================================================
