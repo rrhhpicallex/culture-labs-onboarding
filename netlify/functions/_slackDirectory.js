@@ -48,6 +48,7 @@ const NAME_TO_SLACK = {
   // Incorporaciones recientes, todavía sin cargar en el organigrama público.
   "Francisco Barosco": "U0BTY5Q9L57",
   "Alejandra Orozco": "U0BTZU40T0C",
+  "Ale": "U0BTZU40T0C", // puso solo "Ale" como su nombre en la plataforma
 };
 
 function normName(s) {
