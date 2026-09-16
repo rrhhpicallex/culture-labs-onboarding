@@ -1654,6 +1654,14 @@ function backToAdminList(){
   document.getElementById('adminModalBody').innerHTML = adminPanelHTML(_adminCache.profiles, _adminCache.diagnostics, _adminCache.attempts);
 }
 
+// Gente que ya tiene Slack ID pero todavía no está cargada en el organigrama
+// público de "Nuestros equipos" (nueva incorporación reciente, sin área/rol
+// confirmados todavía). Solo se usa para poder mandarles avisos de Slack.
+const EXTRA_SLACK_CONTACTS = [
+  {name:'Francisco Barosco', slack:'U0BTY5Q9L57'},
+  {name:'Alejandra Orozco', slack:'U0BTZU40T0C'},
+];
+
 function findOrgPerson(name){
   if(!name) return null;
   const nn = normName(name);
@@ -1662,6 +1670,10 @@ function findOrgPerson(name){
       const parts = p.name.split(' ').map(normName);
       if(normName(p.name)===nn || parts.every(part=>nn.includes(part))) return p;
     }
+  }
+  for(const p of EXTRA_SLACK_CONTACTS){
+    const parts = p.name.split(' ').map(normName);
+    if(normName(p.name)===nn || parts.every(part=>nn.includes(part))) return p;
   }
   return null;
 }

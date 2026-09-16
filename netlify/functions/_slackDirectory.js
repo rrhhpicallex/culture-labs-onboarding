@@ -44,6 +44,10 @@ const NAME_TO_SLACK = {
   "Lucia Robledo": "U05QFRJE4G7",
   "Alejandra Gregoris": "U025Q8FHRME",
   "Gonzalo Sosa": "U01V1Q5S61G",
+
+  // Incorporaciones recientes, todavía sin cargar en el organigrama público.
+  "Francisco Barosco": "U0BTY5Q9L57",
+  "Alejandra Orozco": "U0BTZU40T0C",
 };
 
 function normName(s) {
