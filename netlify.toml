@@ -12,6 +12,10 @@
   # en index.html — este código corre en el servidor, no en el navegador.
   directory = "netlify/functions"
 
+[functions."slack-feedback-cron"]
+  # 13:00 UTC = 10am Argentina / 8am Colombia. Corre sola todos los días.
+  schedule = "0 13 * * *"
+
 [[headers]]
   for = "/*"
   [headers.values]

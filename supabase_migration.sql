@@ -235,3 +235,14 @@ revoke usage on schema onboarding from anon;
 
 alter default privileges in schema onboarding
   grant select, insert, update on tables to authenticated;
+
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- 8 · Recordatorio automático de feedback por Slack (cron de Netlify)
+--     Marca cuándo se le mandó el aviso a cada persona, para no repetirlo.
+--     La función de cron usa el service_role key, así que no necesita policy
+--     de RLS nueva (ese key ya se salta RLS).
+-- ────────────────────────────────────────────────────────────────────────────
+
+alter table onboarding.onboarding_profiles
+  add column if not exists feedback_reminder_sent_at timestamptz;
