@@ -58,7 +58,7 @@ exports.handler = async () => {
     if (!slackId) { results.push({ name: p.name, skipped: 'sin slack id en el organigrama' }); continue; }
 
     const firstName = p.name.split(' ')[0];
-    const text = `¡Hola ${firstName}! 👋 Ya se habilitó tu encuesta de feedback de la primera semana en Culture Labs — la encontrás en el módulo "Feedback de tu primera semana" de la plataforma. ¡Gracias por completarla! 💌`;
+    const text = `¡Hola ${firstName}! 👋 Ya se habilitó tu encuesta de feedback de tus primeros 15 días en Culture Labs — entrá a la plataforma y buscá el módulo "Feedback de tu primera semana": https://culturelab-pcx.netlify.app ¡Gracias por completarla! 💌`;
 
     try {
       const openRes = await fetch('https://slack.com/api/conversations.open', {
